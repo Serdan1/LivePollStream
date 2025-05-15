@@ -1,13 +1,31 @@
-if __name__ == "__main__":
-    from src.controllers.cli_controller import CLIController
-    from src.config import Config
-    import sys
+from src.controllers.cli_controller import CLIController
+from src.services.poll_service import PollService
+from src.services.user_service import UserService
+from src.services.nft_service import NFTService
+from src.services.chatbot_service import ChatbotService
+from src.repositories.encuesta_repository import EncuestaRepository
+from src.repositories.usuario_repository import UsuarioRepository
+from src.repositories.nft_repository import NFTRepository
+from src.patterns.factory import SimplePollFactory
+from src.config import RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO
 
-    config = Config()
-    controller = CLIController(config)
-    
-    if "--ui" in sys.argv:
-        from src.ui.gradio_ui import launch_gradio
-        launch_gradio(config)
-    else:
-        controller.run()
+def main():
+    # Inicializar repositorios
+    encuesta_repo = EncuestaRepository(RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO)
+    user_repo = UsuarioRepository(RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO)
+    nft_repo = NFTRepository(RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO)
+
+    # Inicializar servicios
+    poll_service = PollService(encuesta_repo, poll_factory=SimplePollFactory())
+    user_service = UserService(user_repo)
+    nft_service = NFTService(nft_repo, user_repo)
+    chatbot_service = ChatbotService()
+
+    # Inicializar controlador CLI
+    cli_controller = CLIController(poll_service, user_service, nft_service, chatbot_service)
+
+    # Ejecutar la aplicación
+    cli_controller.run()
+
+if __name__ == "__main__":
+    main()
