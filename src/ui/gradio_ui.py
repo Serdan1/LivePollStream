@@ -79,7 +79,7 @@ class GradioUI:
             create_poll_button.click(self.create_poll, inputs=[question_input, options_input, duration_input, poll_type_input, login_output, login_username], outputs=[create_poll_output, poll_list, option_input])
             refresh_polls_button.click(self.refresh_polls, inputs=[], outputs=[poll_list, option_input])
             refresh_options_button.click(self.refresh_options, inputs=poll_list, outputs=option_input)
-            poll_list.change(self.get_poll_options, inputs=poll_list, outputs=option_input)
+            poll_list.change(self.get_poll_options_for_update, inputs=poll_list, outputs=option_input)
             vote_button.click(self.vote, inputs=[poll_list, login_username, option_input, weight_input, login_output], outputs=[vote_output, token_list])
             login_username.change(self.view_tokens, inputs=[login_username, login_output], outputs=token_list)
             transfer_button.click(self.transfer, inputs=[transfer_token_id, transfer_new_owner, login_username, login_output], outputs=[transfer_output, token_list])
@@ -109,6 +109,12 @@ class GradioUI:
         else:
             print(f"Gradio: get_poll_options - Encuesta no encontrada: {poll_id}")
             return []
+
+    def get_poll_options_for_update(self, poll_id):
+        """Obtiene las opciones de una encuesta y las devuelve en formato gr.update."""
+        options = self.get_poll_options(poll_id)
+        print(f"Gradio: get_poll_options_for_update - Actualizando option_input con opciones: {options}")
+        return gr.update(choices=options, value=None)
 
     def register(self, username, password):
         try:
