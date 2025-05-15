@@ -100,3 +100,22 @@ class EncuestaRepository:
             poll.status = poll_data.get("status", "active")
             result.append(poll)
         return result
+
+    def get_votes_for_poll(self, poll_id):
+        """Recupera todos los votos para una encuesta específica."""
+        try:
+            with open(self.votes_file, "r") as f:
+                votes = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            votes = []
+        result = []
+        for vote_data in votes:
+            if vote_data["poll_id"] == poll_id:
+                vote = Vote(
+                    poll_id=vote_data["poll_id"],
+                    username=vote_data["username"],
+                    option=vote_data["option"],
+                    timestamp=datetime.fromisoformat(vote_data["timestamp"])
+                )
+                result.append(vote)
+        return result
