@@ -137,9 +137,12 @@ class GradioUI:
             poll = self.poll_service.create_poll(question, options_list, int(duration), poll_type)
             print(f"Gradio: create_poll - Encuesta creada: {poll.__dict__}")
             active_polls = self._get_active_polls()
-            initial_poll = active_polls[0] if active_polls else None
-            initial_options = self.get_poll_options(initial_poll) if initial_poll else []
-            return f"Encuesta creada exitosamente. ID: {poll.poll_id}", active_polls, initial_options
+            # Seleccionar el nuevo poll_id como valor predeterminado
+            new_poll_id = poll.poll_id
+            new_options = self.get_poll_options(new_poll_id)
+            print(f"Gradio: create_poll - Actualizando poll_list con: {active_polls}, seleccionando: {new_poll_id}")
+            print(f"Gradio: create_poll - Actualizando option_input con opciones: {new_options}")
+            return f"Encuesta creada exitosamente. ID: {poll.poll_id}", gr.update(choices=active_polls, value=new_poll_id), new_options
         except (ValueError, IndexError) as e:
             print(f"Gradio: create_poll - Error: {e}")
             return f"Error: {e}", self._get_active_polls(), []
@@ -150,11 +153,14 @@ class GradioUI:
         print(f"Gradio: refresh_polls - Encuestas activas: {active_polls}")
         initial_poll = active_polls[0] if active_polls else None
         initial_options = self.get_poll_options(initial_poll) if initial_poll else []
+        print(f"Gradio: refresh_polls - Seleccionando poll_id: {initial_poll}, opciones: {initial_options}")
         return gr.update(choices=active_polls, value=initial_poll), initial_options
 
     def refresh_options(self, poll_id):
         print(f"Gradio: refresh_options - Refrescando opciones para poll_id={poll_id}")
-        return self.get_poll_options(poll_id)
+        options = self.get_poll_options(poll_id)
+        print(f"Gradio: refresh_options - Opciones actualizadas: {options}")
+        return options
 
     def vote(self, poll_id, username, option, weight, login_output):
         print(f"Gradio: vote - Iniciando votación: poll_id={poll_id}, username={username}, option={option}, weight={weight}, login_output={login_output}")
