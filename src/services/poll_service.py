@@ -15,22 +15,28 @@ class PollService:
         return poll
 
     def vote(self, poll_id, username, option):
+        print(f"PollService: vote - Iniciando votación: poll_id={poll_id}, username={username}, option={option}")
         poll = self.encuesta_repository.get_poll(poll_id)
         if not poll:
+            print(f"PollService: vote - Encuesta no encontrada: {poll_id}")
             raise ValueError("Encuesta no encontrada.")
+        print(f"PollService: vote - Encuesta encontrada: {poll.__dict__}")
         if poll.status == "closed":
+            print(f"PollService: vote - Encuesta cerrada: {poll_id}")
             raise ValueError("La encuesta está cerrada.")
         if self.encuesta_repository.has_user_voted(poll_id, username) and poll.poll_type == "simple":
+            print(f"PollService: vote - El usuario ya ha votado: {username} en {poll_id}")
             raise ValueError("El usuario ya ha votado.")
         if option not in poll.options:
+            print(f"PollService: vote - Opción no válida: {option} no está en {poll.options}")
             raise ValueError("Opción no válida.")
         vote = self.vote_strategy.vote(poll, username, option)
+        print(f"PollService: vote - Voto generado: {vote.__dict__}")
         self.encuesta_repository.save_vote(vote)
-        # Guardar los cambios en el objeto poll después de añadir el voto
         self.encuesta_repository.save_poll(poll)
         if self.nft_service:
             token = self.nft_service.mint_token(username, poll_id, option)
-            print(f"Token NFT generado: ID {token.token_id}")
+            print(f"PollService: vote - Token NFT generado: ID {token.token_id}")
         return vote
 
     def get_partial_results(self, poll_id):

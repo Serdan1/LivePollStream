@@ -96,16 +96,23 @@ class GradioUI:
                 poll = self.poll_service.encuesta_repository.get_poll(poll_id)
                 return gr.update(choices=poll.options if poll else [])
 
-            def vote(poll_id, username, option, weight, login_output):
+            def vote(self, poll_id, username, option, weight, login_output):
+                print(f"Gradio: vote - Iniciando votación: poll_id={poll_id}, username={username}, option={option}, weight={weight}, login_output={login_output}")
                 if not login_output.startswith("Sesión iniciada"):
+                    print("Gradio: vote - Sesión no iniciada")
                     return "Debes iniciar sesión primero."
                 try:
-                    self.user_service.verify_session(username, login_output.split("Token: ")[1])
+                    session_token = login_output.split("Token: ")[1]
+                    print(f"Gradio: vote - Verificando sesión para {username} con token {session_token}")
+                    self.user_service.verify_session(username, session_token)
+                    print(f"Gradio: vote - Sesión verificada, intentando votar")
                     self.poll_service.vote(poll_id, username, option, weight)
+                    print(f"Gradio: vote - Voto registrado exitosamente para {username} en {poll_id}")
                     return f"Voto registrado para {username} en la encuesta {poll_id}."
                 except (ValueError, IndexError) as e:
+                    print(f"Gradio: vote - Error: {e}")
                     return f"Error: {e}"
-
+    
             def chat(message, username, login_output):
                 if not login_output.startswith("Sesión iniciada"):
                     return "Debes iniciar sesión primero."
