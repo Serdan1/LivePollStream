@@ -3,17 +3,17 @@ from src.models.voto import Vote
 from src.repositories.encuesta_repository import EncuestaRepository
 from src.services.nft_service import NFTService
 from src.patterns.observer import PollServiceSubject
+from src.patterns.strategy import DesempateStrategy  # Nueva importación
 from datetime import datetime
 
 class PollService:
-    def __init__(self, encuesta_repository, nft_service=None):
+    def __init__(self, encuesta_repository, nft_service=None, desempate_strategy=None):
         self.encuesta_repository = encuesta_repository
         self.nft_service = nft_service
-        self.desempate_strategy = None
-        self.subject = PollServiceSubject()  # Instancia del sujeto para notificar observadores
+        self.desempate_strategy = desempate_strategy  # Estrategia de desempate
+        self.subject = PollServiceSubject()
 
     def add_observer(self, observer):
-        """Añade un observador para recibir notificaciones."""
         self.subject.add_observer(observer)
 
     def create_poll(self, question, options, duration_seconds, poll_type="simple"):
@@ -43,7 +43,7 @@ class PollService:
             raise ValueError("Encuesta no encontrada.")
         poll.close()
         self.encuesta_repository.save_poll(poll)
-        self.subject.notify_observers(poll)  # Notificar a los observadores
+        self.subject.notify_observers(poll)
         return poll
 
     def _check_and_close_expired_polls(self):
@@ -53,7 +53,7 @@ class PollService:
                 if (datetime.now() - poll.timestamp_start).total_seconds() >= poll.duration_seconds:
                     poll.close()
                     self.encuesta_repository.save_poll(poll)
-                    self.subject.notify_observers(poll)  # Notificar a los observadores
+                    self.subject.notify_observers(poll)
 
     def get_partial_results(self, poll_id):
         poll = self.encuesta_repository.get_poll(poll_id)
@@ -84,6 +84,9 @@ class PollService:
         winners = [option for option, count in results.items() if count == max_votes]
         if len(winners) > 1 and self.desempate_strategy:
             winner = self.desempate_strategy.resolve(poll)
+            if winner is None:  # Caso de ExtensionStrategy
+                self.encuesta_repository.save_poll(poll)  # Guardar la encuesta reabierta
+                return {"counts": results, "percentages": percentages, "winner": None, "extended": True}
         else:
             winner = winners[0] if winners else None
-        return {"counts": results, "percentages": percentages, "winner": winner}
+        return {"counts": results, "percentages": percentages, "winner": winner, "extended": False}
