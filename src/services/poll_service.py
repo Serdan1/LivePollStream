@@ -14,8 +14,8 @@ class PollService:
         self.encuesta_repository.save_poll(poll)
         return poll
 
-    def vote(self, poll_id, username, option):
-        print(f"PollService: vote - Iniciando votación: poll_id={poll_id}, username={username}, option={option}")
+    def vote(self, poll_id, username, option, weight=1):
+        print(f"PollService: vote - Iniciando votación: poll_id={poll_id}, username={username}, option={option}, weight={weight}")
         poll = self.encuesta_repository.get_poll(poll_id)
         if not poll:
             print(f"PollService: vote - Encuesta no encontrada: {poll_id}")
@@ -33,6 +33,8 @@ class PollService:
         vote = self.vote_strategy.vote(poll, username, option)
         print(f"PollService: vote - Voto generado: {vote.__dict__}")
         self.encuesta_repository.save_vote(vote)
+        # Pasar weight a poll.add_vote para soportar encuestas weighted
+        poll.add_vote(username, option, weight=weight)
         self.encuesta_repository.save_poll(poll)
         if self.nft_service:
             token = self.nft_service.mint_token(username, poll_id, option)
