@@ -223,13 +223,21 @@ class GradioUI:
             return f"Error: {e}", gr.update(value=[])
 
     def chat(self, message, username, login_output):
+        print(f"Gradio: chat - Procesando mensaje para usuario {username}: '{message}'")
+        print(f"Gradio: chat - Estado de autenticación: login_output='{login_output}'")
         if not login_output or not login_output.startswith("Sesión iniciada"):
+            print("Gradio: chat - Sesión no iniciada, devolviendo mensaje de error")
             return "Debes iniciar sesión primero."
         try:
             session_token = login_output.split("Token: ")[1]
+            print(f"Gradio: chat - Verificando sesión para {username} con token {session_token}")
             self.user_service.verify_session(username, session_token)
-            return self.chatbot_service.respond(message, username)
+            print(f"Gradio: chat - Sesión verificada, enviando mensaje al ChatbotService")
+            response = self.chatbot_service.respond(message, username)
+            print(f"Gradio: chat - Respuesta recibida: {response}")
+            return response
         except (ValueError, IndexError) as e:
+            print(f"Gradio: chat - Error en verificación de sesión: {e}")
             return f"Error: {e}"
 
     def view_tokens(self, username, login_output):
