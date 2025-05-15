@@ -62,3 +62,46 @@ def test_vote(cli_controller, capsys):
     assert "Voto registrado exitosamente." in captured.out
     assert "Token NFT generado:" in captured.out  # Verificar que se genera un token
     assert "¡Adiós!" in captured.out
+
+def test_view_nfts(cli_controller, capsys):
+    """Prueba ver los tokens NFT del usuario a través del CLI."""
+    cli_controller.user_service.register("user1", "password123")
+    poll = cli_controller.poll_service.create_poll("Pregunta", ["Opción 1", "Opción 2"], 60, poll_type="simple")
+    cli_controller.poll_service.vote(poll.poll_id, "user1", "Opción 1")
+    with patch('builtins.input', side_effect=["2", "user1", "password123", "5", "8"]):  # Ver tokens y salir
+        cli_controller.run()
+    captured = capsys.readouterr()
+    assert "Inicio de sesión exitoso." in captured.out
+    assert "Tus tokens NFT:" in captured.out
+    assert "Token ID:" in captured.out
+    assert "Encuesta:" in captured.out
+    assert "Opción: Opción 1" in captured.out
+    assert "¡Adiós!" in captured.out
+
+def test_transfer_nft(cli_controller, capsys):
+    """Prueba transferir un token NFT a otro usuario a través del CLI."""
+    cli_controller.user_service.register("user1", "password123")
+    cli_controller.user_service.register("user2", "password456")
+    poll = cli_controller.poll_service.create_poll("Pregunta", ["Opción 1", "Opción 2"], 60, poll_type="simple")
+    vote = cli_controller.poll_service.vote(poll.poll_id, "user1", "Opción 1")
+    token = cli_controller.nft_service.mint_token("user1", poll.poll_id, "Opción 1")
+    with patch('builtins.input', side_effect=["2", "user1", "password123", "4", token.token_id, "user2", "8"]):  # Transferir y salir
+        cli_controller.run()
+    captured = capsys.readouterr()
+    assert "Inicio de sesión exitoso." in captured.out
+    assert f"Token {token.token_id} transferido a user2 exitosamente." in captured.out
+    assert "¡Adiós!" in captured.out
+
+def test_view_results(cli_controller, capsys):
+    """Prueba ver los resultados de una encuesta a través del CLI."""
+    cli_controller.user_service.register("user1", "password123")
+    poll = cli_controller.poll_service.create_poll("Pregunta", ["Opción 1", "Opción 2"], 60, poll_type="simple")
+    cli_controller.poll_service.vote(poll.poll_id, "user1", "Opción 1")
+    with patch('builtins.input', side_effect=["2", "user1", "password123", "3", poll.poll_id, "8"]):  # Ver resultados y salir
+        cli_controller.run()
+    captured = capsys.readouterr()
+    assert "Inicio de sesión exitoso." in captured.out
+    assert "Resultados parciales:" in captured.out
+    assert "Conteo: {'Opción 1': 1, 'Opción 2': 0}" in captured.out
+    assert "Porcentajes: {'Opción 1': 100.0, 'Opción 2': 0.0}" in captured.out
+    assert "¡Adiós!" in captured.out

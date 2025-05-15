@@ -26,6 +26,8 @@ class PollService:
             raise ValueError("Opción no válida.")
         vote = self.vote_strategy.vote(poll, username, option)
         self.encuesta_repository.save_vote(vote)
+        # Guardar los cambios en el objeto poll después de añadir el voto
+        self.encuesta_repository.save_poll(poll)
         if self.nft_service:
             token = self.nft_service.mint_token(username, poll_id, option)
             print(f"Token NFT generado: ID {token.token_id}")
