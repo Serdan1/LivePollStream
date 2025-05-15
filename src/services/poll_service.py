@@ -1,12 +1,14 @@
 from src.models.encuesta import Poll
 from src.models.voto import Vote
 from src.repositories.encuesta_repository import EncuestaRepository
+from src.services.nft_service import NFTService
 from datetime import datetime
 
 class PollService:
-    def __init__(self, encuesta_repository):
+    def __init__(self, encuesta_repository, nft_service=None):
         self.encuesta_repository = encuesta_repository
-        self.desempate_strategy = None  # Se asignará con el patrón Strategy más adelante
+        self.nft_service = nft_service
+        self.desempate_strategy = None  # Para el patrón Strategy
 
     def create_poll(self, question, options, duration_seconds, poll_type="simple"):
         """Crea una nueva encuesta y la guarda."""
@@ -15,7 +17,7 @@ class PollService:
         return poll
 
     def vote(self, poll_id, username, option):
-        """Registra un voto en una encuesta."""
+        """Registra un voto en una encuesta y genera un token NFT."""
         poll = self.encuesta_repository.get_poll(poll_id)
         if not poll:
             raise ValueError("Encuesta no encontrada.")
@@ -27,6 +29,9 @@ class PollService:
         vote = Vote(poll_id, username, option)
         self.encuesta_repository.save_vote(vote)
         self.encuesta_repository.save_poll(poll)
+        # Generar token NFT si nft_service está configurado
+        if self.nft_service:
+            token = self.nft_service.mint_token(username, poll_id, option)
         return vote
 
     def close_poll(self, poll_id):
@@ -52,7 +57,7 @@ class PollService:
         poll = self.encuesta_repository.get_poll(poll_id)
         if not poll:
             raise ValueError("Encuesta no encontrada.")
-        self._check_and_close_expired_polls()  # Verificar si se debe cerrar
+        self._check_and_close_expired_polls()
         results = poll.get_results()
         total_votes = sum(results.values())
         percentages = {
