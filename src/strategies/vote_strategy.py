@@ -1,8 +1,7 @@
-from src.models.voto import Vote
 from datetime import datetime
 
 class DefaultVoteStrategy:
-    def vote(self, poll, username, option):
+    def vote(self, poll, username, option, weight=1):
         """
         Registra un voto en la encuesta.
 
@@ -10,10 +9,9 @@ class DefaultVoteStrategy:
             poll: Instancia de Poll donde se registra el voto.
             username (str): Nombre del usuario que vota.
             option (str): Opción seleccionada por el usuario.
+            weight (float, opcional): Peso del voto (para encuestas weighted). Por defecto es 1.
 
         Returns:
-            Vote: Instancia del voto registrado.
+            None
         """
-        vote = Vote(poll.poll_id, username, option, timestamp=datetime.now())
-        poll.add_vote(username, option)
-        return vote
+        poll.add_vote(username, option, weight=weight)

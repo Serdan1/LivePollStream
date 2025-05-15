@@ -1,4 +1,5 @@
 from src.strategies.vote_strategy import DefaultVoteStrategy
+from src.models.voto import Vote
 
 class PollService:
     def __init__(self, encuesta_repository, poll_factory=None, vote_strategy=None, nft_service=None):
@@ -33,12 +34,14 @@ class PollService:
         if option not in poll.options:
             print(f"PollService: vote - Opción no válida: {option} no está en {poll.options}")
             raise ValueError("Opción no válida.")
-        # Generar el voto y actualizar la encuesta DESPUÉS de la verificación
-        vote = self.vote_strategy.vote(poll, username, option)
+        # Añadir el voto a poll.votes usando la estrategia
+        self.vote_strategy.vote(poll, username, option, weight=weight)
+        # Crear y guardar el objeto Vote
+        vote = Vote(poll_id, username, option)
         print(f"PollService: vote - Voto generado: {vote.__dict__}")
         self.encuesta_repository.save_vote(vote)
-        poll.add_vote(username, option, weight=weight)
         self.encuesta_repository.save_poll(poll)
+        # Generar el token NFT
         if self.nft_service:
             token = self.nft_service.mint_token(username, poll_id, option)
             print(f"PollService: vote - Token NFT generado: ID {token.token_id}")
