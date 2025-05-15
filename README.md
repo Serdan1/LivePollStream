@@ -96,7 +96,10 @@ Pulsa "Enviar Pregunta". El chatbot debería responder (por ejemplo, user1, ¡Ho
 
 
 ## Diagrama de flujo del sistema LivePollSteam
-graph TD
+
+```mermaid
+flowchart TD
+
     subgraph "Usuario"
         U[Usuario]
     end
@@ -169,6 +172,4 @@ graph TD
     G_Chat -->|respond| S_Chatbot
     S_Chatbot -->|Genera Respuesta| G_Chat
     G_Chat -->|Muestra Respuesta| G_UI
-
-
-   
+ 
