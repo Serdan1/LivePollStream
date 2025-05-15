@@ -54,7 +54,7 @@ class GradioUI:
                     refresh_options_button = gr.Button("Refrescar Opciones")
                     # Inicializar option_input con las opciones de la encuesta inicial
                     initial_options = self.get_poll_options(initial_poll) if initial_poll else []
-                    option_input = gr.Dropdown(label="Opción", choices=initial_options)
+                    option_input = gr.Dropdown(label="Opción", choices=initial_options, value=None, allow_custom_value=True)
                     weight_input = gr.Number(label="Peso del Voto (solo para encuestas ponderadas)", value=1)
                     vote_button = gr.Button("Votar")
                     vote_output = gr.Textbox(label="Resultado del Voto")
@@ -100,15 +100,15 @@ class GradioUI:
         print(f"Gradio: get_poll_options - Obteniendo opciones para poll_id={poll_id}")
         if not poll_id:
             print("Gradio: get_poll_options - No se proporcionó poll_id, devolviendo lista vacía")
-            return []
+            return gr.update(choices=[], value=None)
         poll = self.poll_service.encuesta_repository.get_poll(poll_id)
         if poll:
             print(f"Gradio: get_poll_options - Encuesta encontrada: {poll.__dict__}")
             print(f"Gradio: get_poll_options - Opciones devueltas: {poll.options}")
-            return poll.options
+            return gr.update(choices=poll.options, value=None)
         else:
             print(f"Gradio: get_poll_options - Encuesta no encontrada: {poll_id}")
-            return []
+            return gr.update(choices=[], value=None)
 
     def register(self, username, password):
         try:
@@ -128,7 +128,7 @@ class GradioUI:
         print(f"Gradio: create_poll - Creando encuesta: question={question}, options={options}, duration={duration}, poll_type={poll_type}, username={username}")
         if not login_output or not login_output.startswith("Sesión iniciada"):
             print("Gradio: create_poll - Sesión no iniciada")
-            return "Debes iniciar sesión primero.", self._get_active_polls(), []
+            return "Debes iniciar sesión primero.", self._get_active_polls(), gr.update(choices=[], value=None)
         try:
             session_token = login_output.split("Token: ")[1]
             print(f"Gradio: create_poll - Verificando sesión para {username} con token {session_token}")
@@ -145,14 +145,14 @@ class GradioUI:
             return f"Encuesta creada exitosamente. ID: {poll.poll_id}", gr.update(choices=active_polls, value=new_poll_id), new_options
         except (ValueError, IndexError) as e:
             print(f"Gradio: create_poll - Error: {e}")
-            return f"Error: {e}", self._get_active_polls(), []
+            return f"Error: {e}", self._get_active_polls(), gr.update(choices=[], value=None)
 
     def refresh_polls(self):
         print("Gradio: refresh_polls - Refrescando lista de encuestas")
         active_polls = self._get_active_polls()
         print(f"Gradio: refresh_polls - Encuestas activas: {active_polls}")
         initial_poll = active_polls[0] if active_polls else None
-        initial_options = self.get_poll_options(initial_poll) if initial_poll else []
+        initial_options = self.get_poll_options(initial_poll) if initial_poll else gr.update(choices=[], value=None)
         print(f"Gradio: refresh_polls - Seleccionando poll_id: {initial_poll}, opciones: {initial_options}")
         return gr.update(choices=active_polls, value=initial_poll), initial_options
 
