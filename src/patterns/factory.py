@@ -1,23 +1,35 @@
-from abc import ABC, abstractmethod
 from src.models.encuesta import Poll
 
-class PollFactory(ABC):
-    """Interfaz para las fábricas de encuestas."""
-    @abstractmethod
-    def create_poll(self, poll_id, question, options, duration_seconds):
-        pass
+class SimplePollFactory:
+    def create_poll(self, poll_id, question, options, duration_seconds, poll_type="simple"):
+        """
+        Crea una encuesta de tipo simple.
 
-class SimplePollFactory(PollFactory):
-    """Fábrica para encuestas simples (un voto por usuario)."""
-    def create_poll(self, poll_id, question, options, duration_seconds):
+        Args:
+            poll_id (str): ID de la encuesta (puede ser None para generar uno automáticamente).
+            question (str): Pregunta de la encuesta.
+            options (list): Lista de opciones para votar.
+            duration_seconds (int): Duración de la encuesta en segundos.
+            poll_type (str, opcional): Tipo de encuesta (por defecto "simple").
+
+        Returns:
+            Poll: Instancia de la encuesta creada.
+        """
         return Poll(poll_id, question, options, duration_seconds, poll_type="simple")
 
-class MultiplePollFactory(PollFactory):
-    """Fábrica para encuestas múltiples (varios votos por usuario)."""
-    def create_poll(self, poll_id, question, options, duration_seconds):
-        return Poll(poll_id, question, options, duration_seconds, poll_type="multiple")
+class MultiplePollFactory:
+    def create_poll(self, poll_id, question, options, duration_seconds, poll_type="multiple"):
+        """
+        Crea una encuesta de tipo múltiple (permite múltiples votos por usuario).
 
-class WeightedPollFactory(PollFactory):
-    """Fábrica para encuestas ponderadas (votos con peso)."""
-    def create_poll(self, poll_id, question, options, duration_seconds):
-        return Poll(poll_id, question, options, duration_seconds, poll_type="weighted")
+        Args:
+            poll_id (str): ID de la encuesta (puede ser None para generar uno automáticamente).
+            question (str): Pregunta de la encuesta.
+            options (list): Lista de opciones para votar.
+            duration_seconds (int): Duración de la encuesta en segundos.
+            poll_type (str, opcional): Tipo de encuesta (por defecto "multiple").
+
+        Returns:
+            Poll: Instancia de la encuesta creada.
+        """
+        return Poll(poll_id, question, options, duration_seconds, poll_type="multiple")
