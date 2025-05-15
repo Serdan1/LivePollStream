@@ -16,9 +16,9 @@ def main():
     nft_repo = NFTRepository(RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO)
 
     # Inicializar servicios
-    poll_service = PollService(encuesta_repo, poll_factory=SimplePollFactory())
-    user_service = UserService(user_repo)
     nft_service = NFTService(nft_repo, user_repo)
+    poll_service = PollService(encuesta_repo, poll_factory=SimplePollFactory(), nft_service=nft_service)
+    user_service = UserService(user_repo)
     chatbot_service = ChatbotService()
 
     # Inicializar controlador CLI

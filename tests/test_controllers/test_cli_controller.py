@@ -18,9 +18,9 @@ def cli_controller(tmpdir):
     encuesta_repo = EncuestaRepository(storage_path, "json")
     user_repo = UsuarioRepository(storage_path, "json")
     nft_repo = NFTRepository(storage_path, "json")
-    poll_service = PollService(encuesta_repo, poll_factory=SimplePollFactory())
-    user_service = UserService(user_repo)
     nft_service = NFTService(nft_repo, user_repo)
+    poll_service = PollService(encuesta_repo, poll_factory=SimplePollFactory(), nft_service=nft_service)
+    user_service = UserService(user_repo)
     chatbot_service = ChatbotService()
     return CLIController(poll_service, user_service, nft_service, chatbot_service)
 
@@ -60,4 +60,5 @@ def test_vote(cli_controller, capsys):
     captured = capsys.readouterr()
     assert "Inicio de sesión exitoso." in captured.out
     assert "Voto registrado exitosamente." in captured.out
+    assert "Token NFT generado:" in captured.out  # Verificar que se genera un token
     assert "¡Adiós!" in captured.out
