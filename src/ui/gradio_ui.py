@@ -57,6 +57,14 @@ class GradioUI:
                     vote_button = gr.Button("Votar")
                     vote_output = gr.Textbox(label="Resultado del Voto")
 
+            # Sección de resultados
+            gr.Markdown("## Resultados de la Encuesta")
+            results_table = gr.Dataframe(
+                label="Resultados",
+                headers=["Opción", "Porcentaje (%)"],
+                value=[]  # Inicialmente vacío
+            )
+
             # Sección de chatbot
             gr.Markdown("## Chatbot")
             chatbot_input = gr.Textbox(label="Pregunta")
@@ -76,11 +84,21 @@ class GradioUI:
             login_button.click(self.login, inputs=[login_username, login_password], outputs=login_output).then(
                 self.view_tokens, inputs=[login_username, login_output], outputs=token_list
             )
-            create_poll_button.click(self.create_poll, inputs=[question_input, options_input, duration_input, poll_type_input, login_output, login_username], outputs=[create_poll_output, poll_list, option_input])
-            refresh_polls_button.click(self.refresh_polls, inputs=[], outputs=[poll_list, option_input])
-            refresh_options_button.click(self.refresh_options, inputs=poll_list, outputs=option_input)
-            poll_list.change(self.get_poll_options_for_update, inputs=poll_list, outputs=option_input)
-            vote_button.click(self.vote, inputs=[poll_list, login_username, option_input, weight_input, login_output], outputs=[vote_output, token_list])
+            create_poll_button.click(self.create_poll, inputs=[question_input, options_input, duration_input, poll_type_input, login_output, login_username], outputs=[create_poll_output, poll_list, option_input]).then(
+                self.get_poll_results, inputs=[poll_list], outputs=results_table
+            )
+            refresh_polls_button.click(self.refresh_polls, inputs=[], outputs=[poll_list, option_input]).then(
+                self.get_poll_results, inputs=[poll_list], outputs=results_table
+            )
+            refresh_options_button.click(self.refresh_options, inputs=[poll_list], outputs=option_input).then(
+                self.get_poll_results, inputs=[poll_list], outputs=results_table
+            )
+            poll_list.change(self.get_poll_options_for_update, inputs=[poll_list], outputs=option_input).then(
+                self.get_poll_results, inputs=[poll_list], outputs=results_table
+            )
+            vote_button.click(self.vote, inputs=[poll_list, login_username, option_input, weight_input, login_output], outputs=[vote_output, token_list]).then(
+                self.get_poll_results, inputs=[poll_list], outputs=results_table
+            )
             login_username.change(self.view_tokens, inputs=[login_username, login_output], outputs=token_list)
             transfer_button.click(self.transfer, inputs=[transfer_token_id, transfer_new_owner, login_username, login_output], outputs=[transfer_output, token_list])
             chatbot_button.click(self.chat, inputs=[chatbot_input, login_username, login_output], outputs=chatbot_output)
@@ -115,6 +133,22 @@ class GradioUI:
         options = self.get_poll_options(poll_id)
         print(f"Gradio: get_poll_options_for_update - Actualizando option_input con opciones: {options}")
         return gr.update(choices=options, value=None)
+
+    def get_poll_results(self, poll_id):
+        """Obtiene los resultados de una encuesta y los formatea como tabla."""
+        print(f"Gradio: get_poll_results - Obteniendo resultados para poll_id={poll_id}")
+        if not poll_id:
+            print("Gradio: get_poll_results - No se proporcionó poll_id, devolviendo tabla vacía")
+            return []
+        try:
+            results = self.poll_service.get_partial_results(poll_id)
+            percentages = results["percentages"]
+            result_table = [[option, f"{percentage:.1f}"] for option, percentage in percentages.items()]
+            print(f"Gradio: get_poll_results - Resultados formateados: {result_table}")
+            return result_table
+        except ValueError as e:
+            print(f"Gradio: get_poll_results - Error: {e}")
+            return []
 
     def register(self, username, password):
         try:
