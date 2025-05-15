@@ -3,21 +3,26 @@ from src.models.voto import Vote
 from src.repositories.encuesta_repository import EncuestaRepository
 from src.services.nft_service import NFTService
 from src.patterns.observer import PollServiceSubject
-from src.patterns.strategy import DesempateStrategy  # Nueva importación
+from src.patterns.strategy import DesempateStrategy
+from src.patterns.factory import PollFactory  # Nueva importación
 from datetime import datetime
 
 class PollService:
-    def __init__(self, encuesta_repository, nft_service=None, desempate_strategy=None):
+    def __init__(self, encuesta_repository, poll_factory=None, nft_service=None, desempate_strategy=None):
         self.encuesta_repository = encuesta_repository
+        self.poll_factory = poll_factory
         self.nft_service = nft_service
-        self.desempate_strategy = desempate_strategy  # Estrategia de desempate
+        self.desempate_strategy = desempate_strategy
         self.subject = PollServiceSubject()
 
     def add_observer(self, observer):
         self.subject.add_observer(observer)
 
     def create_poll(self, question, options, duration_seconds, poll_type="simple"):
-        poll = Poll(None, question, options, duration_seconds, poll_type)
+        """Crea una nueva encuesta usando una fábrica."""
+        if not self.poll_factory:
+            raise ValueError("Se requiere una fábrica de encuestas para crear una encuesta.")
+        poll = self.poll_factory.create_poll(None, question, options, duration_seconds)
         self.encuesta_repository.save_poll(poll)
         return poll
 
@@ -84,8 +89,8 @@ class PollService:
         winners = [option for option, count in results.items() if count == max_votes]
         if len(winners) > 1 and self.desempate_strategy:
             winner = self.desempate_strategy.resolve(poll)
-            if winner is None:  # Caso de ExtensionStrategy
-                self.encuesta_repository.save_poll(poll)  # Guardar la encuesta reabierta
+            if winner is None:
+                self.encuesta_repository.save_poll(poll)
                 return {"counts": results, "percentages": percentages, "winner": None, "extended": True}
         else:
             winner = winners[0] if winners else None
