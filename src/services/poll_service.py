@@ -24,18 +24,21 @@ class PollService:
         if poll.status == "closed":
             print(f"PollService: vote - Encuesta cerrada: {poll_id}")
             raise ValueError("La encuesta está cerrada.")
+        # Verificar has_user_voted ANTES de guardar el voto
         if self.encuesta_repository.has_user_voted(poll_id, username) and poll.poll_type == "simple":
             print(f"PollService: vote - El usuario ya ha votado: {username} en {poll_id}")
             raise ValueError("El usuario ya ha votado.")
         if option not in poll.options:
             print(f"PollService: vote - Opción no válida: {option} no está en {poll.options}")
             raise ValueError("Opción no válida.")
+        # Generar el voto y actualizar la encuesta
         vote = self.vote_strategy.vote(poll, username, option)
         print(f"PollService: vote - Voto generado: {vote.__dict__}")
+        # Guardar el voto y la encuesta DESPUÉS de la verificación
         self.encuesta_repository.save_vote(vote)
-        # Pasar weight a poll.add_vote para soportar encuestas weighted
         poll.add_vote(username, option, weight=weight)
         self.encuesta_repository.save_poll(poll)
+        # Generar el token NFT
         if self.nft_service:
             token = self.nft_service.mint_token(username, poll_id, option)
             print(f"PollService: vote - Token NFT generado: ID {token.token_id}")
