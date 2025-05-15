@@ -1,8 +1,8 @@
 import json
 import os
-from datetime import datetime
 from src.models.token_nft import TokenNFT
 from src.config import RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO
+from datetime import datetime
 
 class NFTRepository:
     def __init__(self, storage_path, storage_type):
@@ -12,7 +12,6 @@ class NFTRepository:
         self._initialize_storage()
 
     def _initialize_storage(self):
-        """Crea el archivo JSON si no existe."""
         if self.storage_type != "json":
             raise NotImplementedError("Solo se soporta almacenamiento JSON por ahora.")
         if not os.path.exists(self.nfts_file):
@@ -20,7 +19,6 @@ class NFTRepository:
                 json.dump([], f)
 
     def save_nft(self, nft):
-        """Guarda un token NFT en el archivo JSON."""
         with open(self.nfts_file, "r") as f:
             nfts = json.load(f)
         nft_data = {
@@ -30,7 +28,6 @@ class NFTRepository:
             "owner": nft.owner,
             "issued_at": nft.issued_at.isoformat()
         }
-        # Actualizar si el token ya existe, o añadirlo
         for i, existing_nft in enumerate(nfts):
             if existing_nft["token_id"] == nft.token_id:
                 nfts[i] = nft_data
@@ -41,7 +38,6 @@ class NFTRepository:
             json.dump(nfts, f)
 
     def get_nft(self, token_id):
-        """Recupera un token NFT por su token_id."""
         with open(self.nfts_file, "r") as f:
             nfts = json.load(f)
         for nft_data in nfts:
@@ -50,12 +46,12 @@ class NFTRepository:
                     poll_id=nft_data["poll_id"],
                     option=nft_data["option"],
                     owner=nft_data["owner"],
-                    issued_at=datetime.fromisoformat(nft_data["issued_at"])
+                    issued_at=datetime.fromisoformat(nft_data["issued_at"]),
+                    token_id=nft_data["token_id"]
                 )
         return None
 
     def get_nfts_by_owner(self, owner):
-        """Recupera todos los tokens NFT de un usuario."""
         with open(self.nfts_file, "r") as f:
             nfts = json.load(f)
         result = []
@@ -65,13 +61,13 @@ class NFTRepository:
                     poll_id=nft_data["poll_id"],
                     option=nft_data["option"],
                     owner=nft_data["owner"],
-                    issued_at=datetime.fromisoformat(nft_data["issued_at"])
+                    issued_at=datetime.fromisoformat(nft_data["issued_at"]),
+                    token_id=nft_data["token_id"]
                 )
                 result.append(nft)
         return result
 
     def transfer_nft(self, token_id, new_owner):
-        """Transfiere un token NFT a un nuevo propietario."""
         with open(self.nfts_file, "r") as f:
             nfts = json.load(f)
         for nft_data in nfts:
@@ -84,7 +80,6 @@ class NFTRepository:
             json.dump(nfts, f)
 
     def get_all_nfts(self):
-        """Recupera todos los tokens NFT."""
         with open(self.nfts_file, "r") as f:
             nfts = json.load(f)
         result = []
@@ -93,7 +88,8 @@ class NFTRepository:
                 poll_id=nft_data["poll_id"],
                 option=nft_data["option"],
                 owner=nft_data["owner"],
-                issued_at=datetime.fromisoformat(nft_data["issued_at"])
+                issued_at=datetime.fromisoformat(nft_data["issued_at"]),
+                token_id=nft_data["token_id"]
             )
             result.append(nft)
         return result
