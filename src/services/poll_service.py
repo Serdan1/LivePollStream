@@ -4,7 +4,7 @@ from src.repositories.encuesta_repository import EncuestaRepository
 from src.services.nft_service import NFTService
 from src.patterns.observer import PollServiceSubject
 from src.patterns.strategy import DesempateStrategy
-from src.patterns.factory import PollFactory  # Nueva importación
+from src.patterns.factory import PollFactory
 from datetime import datetime
 
 class PollService:
@@ -19,22 +19,24 @@ class PollService:
         self.subject.add_observer(observer)
 
     def create_poll(self, question, options, duration_seconds, poll_type="simple"):
-        """Crea una nueva encuesta usando una fábrica."""
         if not self.poll_factory:
             raise ValueError("Se requiere una fábrica de encuestas para crear una encuesta.")
+        if poll_type not in ["simple", "multiple", "weighted"]:
+            raise ValueError("Tipo de encuesta no válido. Use 'simple', 'multiple' o 'weighted'.")
         poll = self.poll_factory.create_poll(None, question, options, duration_seconds)
         self.encuesta_repository.save_poll(poll)
         return poll
 
-    def vote(self, poll_id, username, option):
+    def vote(self, poll_id, username, option, weight=1):
+        """Registra un voto, soportando un peso para encuestas ponderadas."""
         poll = self.encuesta_repository.get_poll(poll_id)
         if not poll:
             raise ValueError("Encuesta no encontrada.")
         if not poll.is_active():
             raise ValueError("La encuesta está cerrada.")
-        if self.encuesta_repository.has_user_voted(poll_id, username):
+        if poll.poll_type != "multiple" and self.encuesta_repository.has_user_voted(poll_id, username):
             raise ValueError("El usuario ya ha votado.")
-        poll.add_vote(username, option)
+        poll.add_vote(username, option, weight)
         vote = Vote(poll_id, username, option)
         self.encuesta_repository.save_vote(vote)
         self.encuesta_repository.save_poll(poll)
