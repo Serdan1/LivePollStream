@@ -61,7 +61,7 @@ class GradioUI:
             gr.Markdown("## Chatbot")
             chatbot_input = gr.Textbox(label="Pregunta")
             chatbot_output = gr.Textbox(label="Respuesta")
-            chatbot_button = gr.Button("Enviar Pregunta")  # Definir el botón
+            chatbot_button = gr.Button("Enviar Pregunta")
 
             # Sección de tokens
             gr.Markdown("## Tus Tokens NFT")
@@ -73,15 +73,14 @@ class GradioUI:
 
             # Conectar eventos
             register_button.click(self.register, inputs=[register_username, register_password], outputs=register_output)
-            login_button.click(self.login, inputs=[login_username, login_password], outputs=login_output)
+            login_button.click(self.login, inputs=[login_username, login_password], outputs=login_output).then(
+                self.view_tokens, inputs=[login_username, login_output], outputs=token_list
+            )
             create_poll_button.click(self.create_poll, inputs=[question_input, options_input, duration_input, poll_type_input, login_output, login_username], outputs=[create_poll_output, poll_list, option_input])
             refresh_polls_button.click(self.refresh_polls, inputs=[], outputs=[poll_list, option_input])
             refresh_options_button.click(self.refresh_options, inputs=poll_list, outputs=option_input)
             poll_list.change(self.get_poll_options, inputs=poll_list, outputs=option_input)
             vote_button.click(self.vote, inputs=[poll_list, login_username, option_input, weight_input, login_output], outputs=[vote_output, token_list])
-            login_button.click(self.login, inputs=[login_username, login_password], outputs=login_output).then(
-                self.view_tokens, inputs=[login_username, login_output], outputs=token_list
-            )
             login_username.change(self.view_tokens, inputs=[login_username, login_output], outputs=token_list)
             transfer_button.click(self.transfer, inputs=[transfer_token_id, transfer_new_owner, login_username, login_output], outputs=[transfer_output, token_list])
             chatbot_button.click(self.chat, inputs=[chatbot_input, login_username, login_output], outputs=chatbot_output)
@@ -129,7 +128,7 @@ class GradioUI:
         print(f"Gradio: create_poll - Creando encuesta: question={question}, options={options}, duration={duration}, poll_type={poll_type}, username={username}")
         if not login_output or not login_output.startswith("Sesión iniciada"):
             print("Gradio: create_poll - Sesión no iniciada")
-            return "Debes iniciar sesión primero.", self._get_active_polls(), []
+            return "Debes iniciar sesión primero.", self._get_active_polls(), gr.update(choices=[], value=None)
         try:
             session_token = login_output.split("Token: ")[1]
             print(f"Gradio: create_poll - Verificando sesión para {username} con token {session_token}")
@@ -142,10 +141,10 @@ class GradioUI:
             new_options = self.get_poll_options(new_poll_id)
             print(f"Gradio: create_poll - Actualizando poll_list con: {active_polls}, seleccionando: {new_poll_id}")
             print(f"Gradio: create_poll - Actualizando option_input con opciones: {new_options}")
-            return f"Encuesta creada exitosamente. ID: {poll.poll_id}", gr.update(choices=active_polls, value=new_poll_id), new_options
+            return f"Encuesta creada exitosamente. ID: {poll.poll_id}", gr.update(choices=active_polls, value=new_poll_id), gr.update(choices=new_options, value=None)
         except (ValueError, IndexError) as e:
             print(f"Gradio: create_poll - Error: {e}")
-            return f"Error: {e}", self._get_active_polls(), []
+            return f"Error: {e}", self._get_active_polls(), gr.update(choices=[], value=None)
 
     def refresh_polls(self):
         print("Gradio: refresh_polls - Refrescando lista de encuestas")
@@ -154,19 +153,19 @@ class GradioUI:
         initial_poll = active_polls[0] if active_polls else None
         initial_options = self.get_poll_options(initial_poll) if initial_poll else []
         print(f"Gradio: refresh_polls - Seleccionando poll_id: {initial_poll}, opciones: {initial_options}")
-        return gr.update(choices=active_polls, value=initial_poll), initial_options
+        return gr.update(choices=active_polls, value=initial_poll), gr.update(choices=initial_options, value=None)
 
     def refresh_options(self, poll_id):
         print(f"Gradio: refresh_options - Refrescando opciones para poll_id={poll_id}")
         options = self.get_poll_options(poll_id)
         print(f"Gradio: refresh_options - Opciones actualizadas: {options}")
-        return options
+        return gr.update(choices=options, value=None)
 
     def vote(self, poll_id, username, option, weight, login_output):
         print(f"Gradio: vote - Iniciando votación: poll_id={poll_id}, username={username}, option={option}, weight={weight}, login_output={login_output}")
         if not login_output or not login_output.startswith("Sesión iniciada"):
             print("Gradio: vote - Sesión no iniciada")
-            return "Debes iniciar sesión primero."
+            return "Debes iniciar sesión primero.", gr.update(value=[])
         try:
             session_token = login_output.split("Token: ")[1]
             print(f"Gradio: vote - Verificando sesión para {username} con token {session_token}")
@@ -174,10 +173,14 @@ class GradioUI:
             print(f"Gradio: vote - Sesión verificada, intentando votar")
             self.poll_service.vote(poll_id, username, option, weight)
             print(f"Gradio: vote - Voto registrado exitosamente para {username} en {poll_id}")
-            return f"Voto registrado para {username} en la encuesta {poll_id}."
+            # Actualizar token_list después de votar
+            tokens = self.nft_service.get_user_tokens(username)
+            updated_tokens = [[token.token_id, token.poll_id, token.option] for token in tokens]
+            print(f"Gradio: vote - Tokens actualizados para {username}: {updated_tokens}")
+            return f"Voto registrado para {username} en la encuesta {poll_id}.", updated_tokens
         except (ValueError, IndexError) as e:
             print(f"Gradio: vote - Error: {e}")
-            return f"Error: {e}"
+            return f"Error: {e}", gr.update(value=[])
 
     def chat(self, message, username, login_output):
         if not login_output or not login_output.startswith("Sesión iniciada"):
@@ -193,21 +196,22 @@ class GradioUI:
         print(f"Gradio: view_tokens - Username: {username}, Login Output: {login_output}")
         if not login_output or not login_output.startswith("Sesión iniciada"):
             print("Gradio: view_tokens - Sesión no iniciada, devolviendo lista vacía")
-            return []
+            return gr.update(value=[])
         try:
             session_token = login_output.split("Token: ")[1]
             print(f"Gradio: view_tokens - Verificando sesión para {username} con token {session_token}")
             if self.user_service.verify_session(username, session_token):
                 print(f"Gradio: view_tokens - Sesión válida, recuperando tokens para {username}")
                 tokens = self.nft_service.get_user_tokens(username)
-                print(f"Gradio: view_tokens - Tokens recuperados: {[token.__dict__ for token in tokens]}")
-                return [[token.token_id, token.poll_id, token.option] for token in tokens]
+                updated_tokens = [[token.token_id, token.poll_id, token.option] for token in tokens]
+                print(f"Gradio: view_tokens - Tokens recuperados: {updated_tokens}")
+                return updated_tokens
             else:
                 print("Gradio: view_tokens - Sesión inválida, devolviendo lista vacía")
-                return []
+                return gr.update(value=[])
         except (ValueError, IndexError) as e:
             print(f"Gradio: view_tokens - Error: {e}, devolviendo lista vacía")
-            return []
+            return gr.update(value=[])
 
     def transfer(self, token_id, new_owner, username, login_output):
         print(f"Gradio: Intentando transferir token {token_id} de {username} a {new_owner}")
