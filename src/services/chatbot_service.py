@@ -4,10 +4,11 @@ class ChatbotService:
     def __init__(self):
         print("ChatbotService: Inicializando chatbot con modelo datificate/gpt2-small-spanish")
         try:
+            # Cargar el modelo de generación de texto
             self.chatbot = pipeline(
                 "text-generation",
                 model="datificate/gpt2-small-spanish",
-                device=-1
+                device=-1  # Usa CPU
             )
             print("ChatbotService: Modelo inicializado correctamente")
         except Exception as e:
@@ -20,26 +21,27 @@ class ChatbotService:
             print("ChatbotService: respond - Mensaje inválido, devolviendo respuesta genérica")
             return f"{username}, por favor escribe un mensaje válido."
         
+        # Generar la respuesta con el modelo
         try:
-            prompt = f"Eres un asistente amigable que responde únicamente en español de manera natural y conversacional. Pregunta de {username}: {message}"
+            # Prompt optimizado para respuestas en español
+            prompt = f"Responde en español de manera clara y concisa: {username}, {message}"
+            # Generar respuesta
             response = self.chatbot(
                 prompt,
-                max_new_tokens=50,
+                max_new_tokens=50,  # Limitar tokens generados
                 do_sample=True,
                 num_return_sequences=1,
-                temperature=0.9,
-                top_p=0.95,
-                pad_token_id=self.chatbot.tokenizer.eos_token_id if self.chatbot.tokenizer else None
+                temperature=0.6,
+                top_p=0.85
             )[0]['generated_text']
             print(f"ChatbotService: respond - Respuesta cruda del modelo: '{response}'")
             
+            # Limpiar la respuesta
             response = response.strip()
             if prompt in response:
                 response = response.replace(prompt, "").strip()
-            if response.startswith(f"{username},"):
-                response = response[len(f"{username},"):].strip()
             if not response or len(response) < 3:
-                response = "Lo siento, no entendí bien. ¿Puedes repetir, por favor?"
+                response = "Lo siento, no pude generar una respuesta clara. Intenta de nuevo."
             response = response.replace("\n", " ").strip()
             print(f"ChatbotService: respond - Respuesta limpia: '{response}'")
             return f"{username}, {response}"
