@@ -11,22 +11,22 @@ from src.ui.gradio_ui import GradioUI
 
 def main():
     try:
-        # Inicializar repositorios
+        print("Main: Inicializando repositorios")
         encuesta_repo = EncuestaRepository(RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO)
         user_repo = UsuarioRepository(RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO)
         nft_repo = NFTRepository(RUTA_ALMACENAMIENTO, TIPO_ALMACENAMIENTO)
 
-        # Inicializar servicios
+        print("Main: Inicializando servicios")
         nft_service = NFTService(nft_repo, user_repo)
         poll_service = PollService(encuesta_repo, poll_factory=SimplePollFactory(), nft_service=nft_service)
         user_service = UserService(user_repo)
         chatbot_service = ChatbotService()
 
-        # Inicializar y ejecutar Gradio UI
-        gradio_ui = GradioUI(poll_service, user_service, nft_service, chatbot_service, port=7860)
+        print("Main: Inicializando Gradio UI")
+        gradio_ui = GradioUI(poll_service, user_service, nft_service, chatbot_service, port=7861)  # Cambiar puerto
         gradio_ui.launch()
     except Exception as e:
-        print(f"Error al iniciar la aplicación: {e}")
+        print(f"Main: Error al iniciar la aplicación: {e}")
         raise
 
 if __name__ == "__main__":

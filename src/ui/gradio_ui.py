@@ -52,7 +52,7 @@ class GradioUI:
                     refresh_polls_button = gr.Button("Refrescar Encuestas")
                     refresh_options_button = gr.Button("Refrescar Opciones")
                     initial_options = self.get_poll_options(initial_poll) if initial_poll else []
-                    option_input = gr.Dropdown(label="Opción", choices=initial_options, value=None, allow_custom_value=True)
+                    option_input = gr.Dropdown(label="Opción", choices=initial_options, value=None)
                     weight_input = gr.Number(label="Peso del Voto (solo para encuestas ponderadas)", value=1)
                     vote_button = gr.Button("Votar")
                     vote_output = gr.Textbox(label="Resultado del Voto")
@@ -103,15 +103,23 @@ class GradioUI:
             transfer_button.click(self.transfer, inputs=[transfer_token_id, transfer_new_owner, login_username, login_output], outputs=[transfer_output, token_list])
             chatbot_button.click(self.chat, inputs=[chatbot_input, login_username, login_output], outputs=chatbot_output)
 
-        app.launch(server_port=self.port)
+        try:
+            app.launch(server_port=self.port)
+        except Exception as e:
+            print(f"GradioUI: Error al iniciar la interfaz: {e}")
+            raise
 
     def _get_active_polls(self):
         """Devuelve una lista de IDs de encuestas activas."""
         print("Gradio: _get_active_polls - Obteniendo encuestas activas")
-        polls = self.poll_service.encuesta_repository.get_all_polls()
-        active_polls = [poll.poll_id for poll in polls if poll.is_active()]
-        print(f"Gradio: _get_active_polls - Encuestas activas: {active_polls}")
-        return active_polls
+        try:
+            polls = self.poll_service.encuesta_repository.get_all_polls()
+            active_polls = [poll.poll_id for poll in polls if poll.is_active()]
+            print(f"Gradio: _get_active_polls - Encuestas activas: {active_polls}")
+            return active_polls
+        except Exception as e:
+            print(f"Gradio: _get_active_polls - Error: {e}")
+            return []
 
     def get_poll_options(self, poll_id):
         """Obtiene las opciones de una encuesta dada su poll_id."""
@@ -119,20 +127,28 @@ class GradioUI:
         if not poll_id:
             print("Gradio: get_poll_options - No se proporcionó poll_id, devolviendo lista vacía")
             return []
-        poll = self.poll_service.encuesta_repository.get_poll(poll_id)
-        if poll:
-            print(f"Gradio: get_poll_options - Encuesta encontrada: {poll.__dict__}")
-            print(f"Gradio: get_poll_options - Opciones devueltas: {poll.options}")
-            return poll.options
-        else:
-            print(f"Gradio: get_poll_options - Encuesta no encontrada: {poll_id}")
+        try:
+            poll = self.poll_service.encuesta_repository.get_poll(poll_id)
+            if poll:
+                print(f"Gradio: get_poll_options - Encuesta encontrada: {poll.__dict__}")
+                print(f"Gradio: get_poll_options - Opciones devueltas: {poll.options}")
+                return poll.options
+            else:
+                print(f"Gradio: get_poll_options - Encuesta no encontrada: {poll_id}")
+                return []
+        except Exception as e:
+            print(f"Gradio: get_poll_options - Error: {e}")
             return []
 
     def get_poll_options_for_update(self, poll_id):
         """Obtiene las opciones de una encuesta y las devuelve en formato gr.update."""
-        options = self.get_poll_options(poll_id)
-        print(f"Gradio: get_poll_options_for_update - Actualizando option_input con opciones: {options}")
-        return gr.update(choices=options, value=None)
+        try:
+            options = self.get_poll_options(poll_id)
+            print(f"Gradio: get_poll_options_for_update - Actualizando option_input con opciones: {options}")
+            return gr.update(choices=options, value=None)
+        except Exception as e:
+            print(f"Gradio: get_poll_options_for_update - Error: {e}")
+            return gr.update(choices=[], value=None)
 
     def get_poll_results(self, poll_id):
         """Obtiene los resultados de una encuesta y los formatea como tabla."""
@@ -151,17 +167,25 @@ class GradioUI:
             return []
 
     def register(self, username, password):
+        print(f"Gradio: register - Intentando registrar usuario: {username}")
         try:
+            if not username or not password:
+                return "Usuario y contraseña son obligatorios."
             user = self.user_service.register(username, password)
             return f"Usuario {username} registrado exitosamente."
         except ValueError as e:
+            print(f"Gradio: register - Error: {e}")
             return f"Error: {e}"
 
     def login(self, username, password):
+        print(f"Gradio: login - Intentando iniciar sesión para usuario: {username}")
         try:
+            if not username or not password:
+                return "Usuario y contraseña son obligatorios."
             session_token = self.user_service.login(username, password)
             return f"Sesión iniciada con éxito. Token: {session_token}"
         except ValueError as e:
+            print(f"Gradio: login - Error: {e}")
             return f"Error: {e}"
 
     def create_poll(self, question, options, duration, poll_type, login_output, username):
@@ -170,10 +194,17 @@ class GradioUI:
             print("Gradio: create_poll - Sesión no iniciada")
             return "Debes iniciar sesión primero.", self._get_active_polls(), gr.update(choices=[], value=None)
         try:
-            session_token = login_output.split("Token: ")[1]
+            # Extraer session_token de manera robusta
+            if "Token: " not in login_output:
+                raise ValueError("Token de sesión no encontrado en login_output")
+            session_token = login_output.split("Token: ")[1].strip()
             print(f"Gradio: create_poll - Verificando sesión para {username} con token {session_token}")
             self.user_service.verify_session(username, session_token)
-            options_list = [opt.strip() for opt in options.split(",")]
+            if not question or not options:
+                raise ValueError("La pregunta y las opciones son obligatorias.")
+            options_list = [opt.strip() for opt in options.split(",") if opt.strip()]
+            if len(options_list) < 2:
+                raise ValueError("Debe proporcionar al menos dos opciones.")
             poll = self.poll_service.create_poll(question, options_list, int(duration), poll_type)
             print(f"Gradio: create_poll - Encuesta creada: {poll.__dict__}")
             active_polls = self._get_active_polls()
@@ -188,18 +219,26 @@ class GradioUI:
 
     def refresh_polls(self):
         print("Gradio: refresh_polls - Refrescando lista de encuestas")
-        active_polls = self._get_active_polls()
-        print(f"Gradio: refresh_polls - Encuestas activas: {active_polls}")
-        initial_poll = active_polls[0] if active_polls else None
-        initial_options = self.get_poll_options(initial_poll) if initial_poll else []
-        print(f"Gradio: refresh_polls - Seleccionando poll_id: {initial_poll}, opciones: {initial_options}")
-        return gr.update(choices=active_polls, value=initial_poll), gr.update(choices=initial_options, value=None)
+        try:
+            active_polls = self._get_active_polls()
+            print(f"Gradio: refresh_polls - Encuestas activas: {active_polls}")
+            initial_poll = active_polls[0] if active_polls else None
+            initial_options = self.get_poll_options(initial_poll) if initial_poll else []
+            print(f"Gradio: refresh_polls - Seleccionando poll_id: {initial_poll}, opciones: {initial_options}")
+            return gr.update(choices=active_polls, value=initial_poll), gr.update(choices=initial_options, value=None)
+        except Exception as e:
+            print(f"Gradio: refresh_polls - Error: {e}")
+            return gr.update(choices=[], value=None), gr.update(choices=[], value=None)
 
     def refresh_options(self, poll_id):
         print(f"Gradio: refresh_options - Refrescando opciones para poll_id={poll_id}")
-        options = self.get_poll_options(poll_id)
-        print(f"Gradio: refresh_options - Opciones actualizadas: {options}")
-        return gr.update(choices=options, value=None)
+        try:
+            options = self.get_poll_options(poll_id)
+            print(f"Gradio: refresh_options - Opciones actualizadas: {options}")
+            return gr.update(choices=options, value=None)
+        except Exception as e:
+            print(f"Gradio: refresh_options - Error: {e}")
+            return gr.update(choices=[], value=None)
 
     def vote(self, poll_id, username, option, weight, login_output):
         print(f"Gradio: vote - Iniciando votación: poll_id={poll_id}, username={username}, option={option}, weight={weight}, login_output={login_output}")
@@ -207,13 +246,16 @@ class GradioUI:
             print("Gradio: vote - Sesión no iniciada")
             return "Debes iniciar sesión primero.", gr.update(value=[])
         try:
-            session_token = login_output.split("Token: ")[1]
+            if "Token: " not in login_output:
+                raise ValueError("Token de sesión no encontrado en login_output")
+            session_token = login_output.split("Token: ")[1].strip()
             print(f"Gradio: vote - Verificando sesión para {username} con token {session_token}")
             self.user_service.verify_session(username, session_token)
+            if not poll_id or not option:
+                raise ValueError("Debes seleccionar una encuesta y una opción.")
             print(f"Gradio: vote - Sesión verificada, intentando votar")
             self.poll_service.vote(poll_id, username, option, weight)
             print(f"Gradio: vote - Voto registrado exitosamente para {username} en {poll_id}")
-            # Actualizar token_list después de votar
             tokens = self.nft_service.get_user_tokens(username)
             updated_tokens = [[token.token_id, token.poll_id, token.option] for token in tokens]
             print(f"Gradio: vote - Tokens actualizados para {username}: {updated_tokens}")
@@ -228,8 +270,13 @@ class GradioUI:
         if not login_output or not login_output.startswith("Sesión iniciada"):
             print("Gradio: chat - Sesión no iniciada, devolviendo mensaje de error")
             return "Debes iniciar sesión primero."
+        if not message or not username:
+            print("Gradio: chat - Mensaje o usuario vacío")
+            return "Por favor, ingresa un mensaje y asegúrate de estar autenticado."
         try:
-            session_token = login_output.split("Token: ")[1]
+            if "Token: " not in login_output:
+                raise ValueError("Token de sesión no encontrado en login_output")
+            session_token = login_output.split("Token: ")[1].strip()
             print(f"Gradio: chat - Verificando sesión para {username} con token {session_token}")
             self.user_service.verify_session(username, session_token)
             print(f"Gradio: chat - Sesión verificada, enviando mensaje al ChatbotService")
@@ -237,7 +284,7 @@ class GradioUI:
             print(f"Gradio: chat - Respuesta recibida: {response}")
             return response
         except (ValueError, IndexError) as e:
-            print(f"Gradio: chat - Error en verificación de sesión: {e}")
+            print(f"Gradio: chat - Error: {e}")
             return f"Error: {e}"
 
     def view_tokens(self, username, login_output):
@@ -246,7 +293,9 @@ class GradioUI:
             print("Gradio: view_tokens - Sesión no iniciada, devolviendo lista vacía")
             return gr.update(value=[])
         try:
-            session_token = login_output.split("Token: ")[1]
+            if "Token: " not in login_output:
+                raise ValueError("Token de sesión no encontrado en login_output")
+            session_token = login_output.split("Token: ")[1].strip()
             print(f"Gradio: view_tokens - Verificando sesión para {username} con token {session_token}")
             if self.user_service.verify_session(username, session_token):
                 print(f"Gradio: view_tokens - Sesión válida, recuperando tokens para {username}")
@@ -258,19 +307,25 @@ class GradioUI:
                 print("Gradio: view_tokens - Sesión inválida, devolviendo lista vacía")
                 return gr.update(value=[])
         except (ValueError, IndexError) as e:
-            print(f"Gradio: view_tokens - Error: {e}, devolviendo lista vacía")
+            print(f"Gradio: view_tokens - Error: {e}")
             return gr.update(value=[])
 
     def transfer(self, token_id, new_owner, username, login_output):
         print(f"Gradio: Intentando transferir token {token_id} de {username} a {new_owner}")
         if not login_output or not login_output.startswith("Sesión iniciada"):
+            print("Gradio: transfer - Sesión no iniciada")
             return "Debes iniciar sesión primero.", []
         try:
-            session_token = login_output.split("Token: ")[1]
+            if "Token: " not in login_output:
+                raise ValueError("Token de sesión no encontrado en login_output")
+            session_token = login_output.split("Token: ")[1].strip()
             self.user_service.verify_session(username, session_token)
+            if not token_id or not new_owner:
+                raise ValueError("El ID del token y el nuevo propietario son obligatorios.")
             self.nft_service.transfer_token(token_id, username, new_owner)
             tokens = self.nft_service.get_user_tokens(username)
-            return f"Token {token_id} transferido a {new_owner}.", [[token.token_id, token.poll_id, token.option] for token in tokens]
+            updated_tokens = [[token.token_id, token.poll_id, token.option] for token in tokens]
+            return f"Token {token_id} transferido a {new_owner}.", updated_tokens
         except (ValueError, IndexError) as e:
-            print(f"Gradio: Error en transferencia: {e}")
+            print(f"Gradio: transfer - Error: {e}")
             return f"Error: {e}", []
