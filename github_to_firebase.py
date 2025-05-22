@@ -2,21 +2,27 @@ import requests
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud.firestore_v1 import aggregation
 
 # Configuración de GitHub
-REPO = "Serdan1/LivePollStream"
-BRANCH = "firebase-integration"
-JSON_PATH = "data"
-TOKEN = ""  # Repositorio público
+REPO = "Serdan1/LivePollStream"  # Repositorio público
+BRANCH = "firebase-integration"  # Rama específica
+JSON_PATH = "data"  # Carpeta con los JSON
+TOKEN = ""  # No necesario para repositorio público
 
 # Configuración de Firebase
-CRED_PATH = "livepollstream-firebase-adminsdk-fbsvc-a204ee3a7d.json"
-PROJECT_ID = "livepollstream"
+CRED_PATH = "firebase-adminsdk.json" 
+PROJECT_ID = "livepollstream"  # ID del proyecto
 
 # Inicializar Firebase
-cred = credentials.Certificate(CRED_PATH)
-firebase_admin.initialize_app(cred, {"projectId": PROJECT_ID})
-db = firestore.client()
+try:
+    cred = credentials.Certificate(CRED_PATH)
+    firebase_admin.initialize_app(cred, {"projectId": PROJECT_ID})
+    db = firestore.client()
+    print("Conectado a Firebase Firestore")
+except Exception as e:
+    print(f"Error al conectar a Firebase: {e}")
+    exit(1)
 
 # Configurar headers para la API de GitHub
 headers = {"Accept": "application/vnd.github.v3+json"}
@@ -86,6 +92,7 @@ for file_info in files:
             # Importar a Firestore
             collection_ref = db.collection(collection_name)
             for doc in data:
+                # Usar un campo como ID (id, poll_id, user_id, vote_id, nft_id) o un hash
                 doc_id = doc.get("id", doc.get("poll_id", doc.get("user_id", doc.get("vote_id", doc.get("nft_id", str(hash(str(doc))))))))
                 collection_ref.document(str(doc_id)).set(doc)
             print(f"Importado {file_info['name']} a la colección {collection_name}")
@@ -101,5 +108,29 @@ collection_ref = db.collection("polls")
 docs = collection_ref.get()
 print(f"Total de documentos en polls: {len(docs)}")
 
-print("Importación completada.")
+# Estadísticas básicas
+# 1. Promedio de votos en polls
+try:
+    collection_ref = db.collection("polls")
+    query = collection_ref
+    agg_query = aggregation.AggregationQuery(query).avg("votes", alias="promedio_votos")
+    result = agg_query.get()
+    for res in result:
+        print(f"Promedio de votos en polls: {res[0]['promedio_votos']}")
+except Exception as e:
+    print(f"Error al calcular promedio de votos: {e}")
+
+# 2. Usuarios por edad
+try:
+    ages = {}
+    for doc in db.collection("users").stream():
+        age = doc.to_dict().get("age")
+        if age is not None:
+            ages[age] = ages.get(age, 0) + 1
+    for age, count in ages.items():
+        print(f"Edad: {age}, Conteo: {count}")
+except Exception as e:
+    print(f"Error al calcular usuarios por edad: {e}")
+
+print("Importación y estadísticas completadas.")
 firebase_admin.delete_app(firebase_admin.get_app())
