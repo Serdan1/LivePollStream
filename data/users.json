@@ -2,19 +2,21 @@
   {
     "username": "Daniel",
     "password_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
-    "session_token": "92e57d40-0ed6-42b3-a12a-4ce1fa72a845",
+    "session_token": "9ae9d789-72f8-445d-89a8-31a0427b3692",
     "tokens": [
       "5a87c6a5-bf4d-49bb-afce-2ef4622f740f",
       "f4942076-654e-44d5-84e0-d6ad5ddd5842",
-      "a46cd0cb-1e12-49dc-92e9-eff04c6554e8"
+      "a46cd0cb-1e12-49dc-92e9-eff04c6554e8",
+      "5e2e6c11-0e7f-4a00-bcd6-634eb029c606"
     ]
   },
   {
     "username": "Ana",
     "password_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
-    "session_token": "e6fa5d74-4188-46ec-a768-8fe5d45d0d94",
+    "session_token": "851aff84-b480-449d-8bc3-aea6fd16246c",
     "tokens": [
-      "e35e7ee0-53bc-4ea2-8d92-4be1312dc15d"
+      "e35e7ee0-53bc-4ea2-8d92-4be1312dc15d",
+      "46a33f3c-6eb5-4498-8b61-83fe4c8fd3d4"
     ]
   }
 ]
