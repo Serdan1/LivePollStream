@@ -1,0 +1,16 @@
+[
+  {
+    "token_id": "5a87c6a5-bf4d-49bb-afce-2ef4622f740f",
+    "poll_id": "e0abbd3e-ffb5-4c1b-ad0b-0da150ebca77",
+    "option": "azul",
+    "owner": "Daniel",
+    "issued_at": "2025-05-16T20:51:24.423372"
+  },
+  {
+    "token_id": "f4942076-654e-44d5-84e0-d6ad5ddd5842",
+    "poll_id": "e0abbd3e-ffb5-4c1b-ad0b-0da150ebca77",
+    "option": "rojo",
+    "owner": "Daniel",
+    "issued_at": "2025-05-16T20:51:43.473121"
+  }
+]
