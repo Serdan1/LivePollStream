@@ -10,7 +10,7 @@ JSON_PATH = "data"
 TOKEN = ""  # Repositorio público
 
 # Configuración de Firebase
-CRED_PATH = "livepollstream-firebase-adminsdk-fbsvc-a204ee3a7d.json"  # Ajusta si renombraste
+CRED_PATH = "livepollstream-firebase-adminsdk-fbsvc-a204ee3a7d.json"
 PROJECT_ID = "livepollstream"
 
 # Inicializar Firebase
@@ -83,8 +83,7 @@ for file_info in files:
             data = json.loads(file_response.text)
             if isinstance(data, dict):
                 data = [data]
-            # Importar a Firestore/home/codespace/.python/current/bin/python /workspaces/LivePollStream/github_to_firebase.py
-
+            # Importar a Firestore
             collection_ref = db.collection(collection_name)
             for doc in data:
                 doc_id = doc.get("id", doc.get("poll_id", doc.get("user_id", doc.get("vote_id", doc.get("nft_id", str(hash(str(doc))))))))
@@ -104,5 +103,3 @@ print(f"Total de documentos en polls: {len(docs)}")
 
 print("Importación completada.")
 firebase_admin.delete_app(firebase_admin.get_app())
-/home/codespace/.python/current/bin/python /workspaces/LivePollStream/src/models/__init__.py
-
