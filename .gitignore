@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 *.sqlite
 .DS_Store
-# Ignorar todos los .json excepto los de la carpeta data/
 *.json
 !data/*.json
+firebase-adminsdk.json
+livepollstream-firebase-adminsdk-fbsvc-a204ee3a7d.json
